@@ -243,7 +243,7 @@ export default function ActiveTask({
       <div className="px-4 py-3 border-b border-slate-100 bg-white shrink-0 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <Clock className="h-4 w-4 text-indigo-600 animate-pulse" />
-          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-700 font-mono">test</h2>
+          <h2 className="text-xs font-bold uppercase tracking-widest text-slate-700 font-mono">test2</h2>
         </div>
         {onTriggerOptimize && pendingTasks.length > 0 && (
           <button
