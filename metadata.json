@@ -1,0 +1,6 @@
+{
+  "name": "FluxList AI",
+  "description": "An automated task scheduler and optimizer powered by Gemini AI that dynamically maps tasks into available time blocks for maximum daily productivity in a state of constant flux.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

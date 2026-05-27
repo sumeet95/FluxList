@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "FluxList AI",
+    "slug": "fluxlist-ai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./src/components/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0f172a"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.fluxlist.ai",
+      "usesCleartextTraffic": true,
+      "permissions": [
+        "INTERNET",
+        "RECORD_AUDIO",
+        "MODIFY_AUDIO_SETTINGS"
+      ]
+    },
+    "web": {
+      "favicon": "./index.html"
+    }
+  }
+}
