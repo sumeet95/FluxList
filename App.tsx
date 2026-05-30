@@ -91,6 +91,7 @@ export default function App() {
 
   const reloadApp = () => {
     setHasError(false);
+    setTargetUrl(curr => curr.includes('?') ? curr.split('?')[0] + '?t=' + Date.now() : curr + '?t=' + Date.now());
     webViewRef.current?.reload();
   };
 
@@ -118,11 +119,11 @@ export default function App() {
   };
 
   const resetToDefault = async () => {
-    const defaultUrl = "http://192.168.5.11:3000";
+    const defaultUrl = "http://192.168.5.11:3000?v=" + Date.now();
     try {
       await AsyncStorage.setItem('@target_url', defaultUrl);
       setTargetUrl(defaultUrl);
-      setTempUrlInput(defaultUrl);
+      setTempUrlInput("http://192.168.5.11:3000");
       setHasError(false);
       setShowConfig(false);
       setTimeout(() => {
