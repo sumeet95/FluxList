@@ -18,7 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function App() {
   const webViewRef = useRef<WebView>(null);
-  const [targetUrl, setTargetUrl] = useState("https://fluxlist-ai-746841761180.us-west2.run.app");
+  const [targetUrl, setTargetUrl] = useState("http://192.168.5.11:3000");
   const [tempUrlInput, setTempUrlInput] = useState("");
   const [canGoBack, setCanGoBack] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -30,7 +30,7 @@ export default function App() {
     async function loadSavedUrl() {
       try {
         const OLD_URL = "https://ais-pre-uyz2giptm5vhtl65z7ovv7-524765733839.us-east1.run.app";
-        const NEW_URL = "https://fluxlist-ai-746841761180.us-west2.run.app";
+        const NEW_URL = "http://192.168.5.11:3000";
 
         const savedUrl = await AsyncStorage.getItem('@target_url');
 
@@ -118,7 +118,7 @@ export default function App() {
   };
 
   const resetToDefault = async () => {
-    const defaultUrl = "https://fluxlist-ai-746841761180.us-west2.run.app";
+    const defaultUrl = "http://192.168.5.11:3000";
     try {
       await AsyncStorage.setItem('@target_url', defaultUrl);
       setTargetUrl(defaultUrl);
