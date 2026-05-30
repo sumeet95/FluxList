@@ -273,9 +273,9 @@ export default function ActiveTask({
                 <Trophy className="h-10 w-10 text-indigo-605" />
               </div>
               <div className="space-y-2 max-w-sm">
-                <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight font-mono">Slate Fully Processed!</h2>
+                <h2 className="text-lg font-black text-slate-900 uppercase tracking-tight font-mono">You're All Caught Up!</h2>
                 <p className="text-xs text-slate-500 font-semibold leading-relaxed">
-                  All tasks are completed! There are no remaining items left to focus on in your active plan.
+                  Amazing work! You've cleared your focus list for now. Take a well-deserved break or head to the Brain Dump to plan your next moves.
                 </p>
               </div>
 
