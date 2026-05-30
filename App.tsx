@@ -38,15 +38,27 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       {/* Set status bar to match app theme for a seamless look */}
       <StatusBar barStyle="light-content" backgroundColor="#0f172a" />
-      
+
       <View style={{ flex: 1 }}>
         <WebView
           ref={webViewRef}
           // Load the local bundled HTML for 100% offline standalone usage
-          source={require('./assets/index.html')}
+          source={require('./assets/app.html')}
           style={styles.webview}
           javaScriptEnabled={true}
           domStorageEnabled={true}
+          mediaPlaybackRequiresUserAction={false}
+          allowsInlineMediaPlayback={true}
+          // Explicitly grant hardware permissions for camera/mic
+          onPermissionRequest={(event) => {
+            event.grant(event.resources);
+          }}
+          // Enable media capture APIs for modern Android WebViews
+          originWhitelist={['*']}
+          mixedContentMode="always"
+          allowFileAccess={true}
+          allowUniversalAccessFromFileURLs={true}
+          allowFileAccessFromFileURLs={true}
           onNavigationStateChange={(navState) => setCanGoBack(navState.canGoBack)}
           startInLoadingState={true}
           renderLoading={() => (
@@ -55,11 +67,8 @@ export default function App() {
               <Text style={styles.loadingText}>FluxList AI</Text>
             </View>
           )}
-          originWhitelist={['*']}
           nestedScrollEnabled={true}
           androidLayerType="hardware"
-          mixedContentMode="compatibility"
-          allowsBackForwardNavigationGestures={true}
           textZoom={100}
           overScrollMode="never"
         />

@@ -26,6 +26,7 @@
     "dotenv": "^17.2.3",
     "expo": "^56.0.4",
     "expo-asset": "^56.0.15",
+    "expo-av": "^16.0.8",
     "expo-file-system": "^56.0.7",
     "express": "^4.21.2",
     "lucide-react": "^0.546.0",
