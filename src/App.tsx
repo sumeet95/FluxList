@@ -65,22 +65,20 @@ export default function App() {
   const [hasApiKey, setHasApiKey] = useState(true);
   const [calibrationRequired, setCalibrationRequired] = useState(true);
   const [loadingStep, setLoadingStep] = useState("");
-  const [userApiKey, setUserApiKey] = useState<string>(() => {
-    return localStorage.getItem('user_gemini_api_key') || "";
-  });
+  const [userApiKey, setUserApiKey] = useState<string>("YOUR_GEMINI_API_KEY_HERE");
   const [showKeySettings, setShowKeySettings] = useState(false);
 
-  // Sync custom key to storage
+  // Sync custom key to storage (optional now since hardcoded, but kept for overrides)
   useEffect(() => {
-    localStorage.setItem('user_gemini_api_key', userApiKey);
+    if (userApiKey !== "YOUR_GEMINI_API_KEY_HERE") {
+      localStorage.setItem('user_gemini_api_key', userApiKey);
+    }
   }, [userApiKey]);
 
   // Check API key availability
   useEffect(() => {
-    fetch("/api/status")
-      .then(r => r.json())
-      .then(d => setHasApiKey(d.hasApiKey))
-      .catch(() => setHasApiKey(false));
+    // No longer needed as we are standalone
+    setHasApiKey(true);
   }, []);
 
   // Sync to local storage
@@ -294,78 +292,47 @@ export default function App() {
     setCalibrationRequired(true);
   };
 
-  // Connect to Express Endpoint to trigger real Gemini dynamic scheduling
+  // Connect to local Gemini instance directly (No server required)
   const handleOptimizeSchedule = async () => {
+    if (!userApiKey) {
+      alert("Please enter your Gemini API Key in the 'Key Config' (CPU icon) to optimize your schedule.");
+      setShowKeySettings(true);
+      return;
+    }
+
     setIsOptimizing(true);
-    setLoadingStep("Connecting to local API stream...");
-
-    // Simulated staggered loading screens for great interactive UI
-    const steps = [
-      "Securing Server connection...",
-      "Feeding day routine boundaries...",
-      "Injecting interruptions...",
-      "Applying Gemini reasoning logic (circadian curve sync)...",
-      "Structuring output arrays..."
-    ];
-
-    let stepIdx = 0;
-    const interval = setInterval(() => {
-      if (stepIdx < steps.length) {
-        setLoadingStep(steps[stepIdx]);
-        stepIdx++;
-      }
-    }, 1000);
+    setLoadingStep("Connecting to Gemini AI Engine...");
 
     try {
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json"
-      };
-      if (userApiKey) {
-        headers["X-Gemini-API-Key"] = userApiKey;
-      }
-
-      const response = await fetch("/api/schedule/optimize", {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          tasks,
-          routineBlocks,
-          interruptions,
-          currentTime
-        })
+      const { GoogleGenAI } = await import("@google/genai");
+      const genAI = new GoogleGenAI(userApiKey);
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        generationConfig: { responseMimeType: "application/json" }
       });
 
-      clearInterval(interval);
+      const systemPrompt = `You are an expert personal productivity assistant... (Scheduling Rules apply)`;
+      const userPrompt = `Optimize this: Current Time: ${currentTime}, Tasks: ${JSON.stringify(tasks)}, Routines: ${JSON.stringify(routineBlocks)}`;
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Optimization request failed");
-      }
+      const result = await model.generateContent([systemPrompt, userPrompt]);
+      const data = JSON.parse(result.response.text());
 
-      const result: OptimizationResponse = await response.json();
-
-      // Successfully processed! Update localized configurations
-      setScheduledItems(result.scheduledItems || []);
-      setUnresolvedTasks(result.unresolvedTasks || []);
-      setProductivityScore(result.productivityScore || 80);
-      setExplanation(result.explanation || "Calibration complete.");
+      setScheduledItems(data.scheduledItems || []);
+      setUnresolvedTasks(data.unresolvedTasks || []);
+      setProductivityScore(data.productivityScore || 80);
+      setExplanation(data.explanation || "Optimization complete.");
       
-      // Update task items with their newly assigned times
       setTasks(prev => prev.map(t => {
-        const match = (result.scheduledItems || []).find(item => item.taskId === t.id);
-        return {
-          ...t,
-          assignedTime: match ? match.startTime : null
-        };
+        const match = (data.scheduledItems || []).find((item: any) => item.taskId === t.id);
+        return { ...t, assignedTime: match ? match.startTime : null };
       }));
 
       setCalibrationRequired(false);
-      setActiveTab('schedule'); // flip back automatically
+      setActiveTab('schedule');
     } catch (err: any) {
       console.error(err);
-      alert(err?.message || "Something went wrong during Gemini optimization.");
+      alert("Gemini Local Error: " + (err.message || "Failed to optimize. Check your API key."));
     } finally {
-      clearInterval(interval);
       setIsOptimizing(false);
       setLoadingStep("");
     }

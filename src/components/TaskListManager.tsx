@@ -7,6 +7,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Task } from '../types';
 import { Plus, Trash2, Check, CornerDownRight, CheckSquare, Square, Flame, Calendar, PlusCircle, Mic, MicOff, Loader2, Sparkles, AlertCircle, Send, Volume2, VolumeX, RefreshCw, AudioLines } from 'lucide-react';
 import { RoutineBlock } from '../types';
+import { GoogleGenAI, SchemaType } from "@google/genai";
 
 // --- DECLARE EXPLICIT GLOBAL WINDOW TYPINGS FOR THE NATIVE APK BRIDGE ---
 declare global {
@@ -238,114 +239,72 @@ export default function TaskListManager({
   };
 
   const handlePTTProcess = async (blob: Blob, mimeType: string) => {
+    if (!userApiKey) {
+      setPttError("Please enter your Gemini API Key in the 'Key Config' (CPU icon) at the top of the app to use voice features without a server.");
+      setPttState('error');
+      return;
+    }
+
     setPttState('transcribing');
     try {
       const base64Audio = await getBase64(blob);
-      let text = "";
+      const genAI = new GoogleGenAI(userApiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-      // Check if Android local SDK bridge is present
-      if (window.AndroidAIEngine) {
-        try {
-          const result = window.AndroidAIEngine.transcribe(base64Audio, mimeType);
-          text = typeof (result as any)?.then === 'function' ? await (result as any) : result as string;
-        } catch (nativeErr: any) {
-          console.error("Native Android Transcription failed, falling back to server...", nativeErr);
-          throw new Error("On-Device Transcription Failure: " + (nativeErr?.message || nativeErr));
-        }
-      } else {
-        // Fallback to standard HTTP node server
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
-        if (userApiKey) {
-          headers["X-Gemini-API-Key"] = userApiKey;
-        }
+      // 1. Transcribe locally
+      const transcriptionResult = await model.generateContent([
+        {
+          inlineData: {
+            mimeType: mimeType || "audio/webm",
+            data: base64Audio,
+          },
+        },
+        "Transcribe this speech recording. Capture all task details spoken. Output ONLY the raw transcribed text. If empty, output an empty string."
+      ]);
 
-        const transcriptionRes = await fetch("/api/brain-dump/transcribe", {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ audioData: base64Audio, mimeType })
-        });
+      const text = transcriptionResult.response.text().trim();
 
-        if (!transcriptionRes.ok) {
-          let errMsg = "Could not transcribe speech. Try again!";
-          try {
-            const errData = await transcriptionRes.json();
-            if (errData && errData.message) {
-              errMsg = errData.message;
-            }
-          } catch (e) {}
-          throw new Error(errMsg);
-        }
-
-        const transcriptionData = await transcriptionRes.json();
-        text = transcriptionData.text;
-      }
-
-      if (!text || !text.trim()) {
+      if (!text) {
         throw new Error("No speech detected. Please speak clearly!");
       }
 
       setPttTranscription(text);
       setPttState('thinking');
 
-      const updatedHistory = [...chatHistory, { role: 'user' as const, text: text }];
-      setChatHistory(updatedHistory);
-
-      let responseData: any;
-
-      if (window.AndroidAIEngine) {
-        try {
-          const result = window.AndroidAIEngine.chat(
-            text,
-            JSON.stringify(chatHistory),
-            JSON.stringify(tasks),
-            JSON.stringify(routineBlocks),
-            currentTime
-          );
-          const responseJson = typeof (result as any)?.then === 'function' ? await (result as any) : result as string;
-          responseData = JSON.parse(responseJson);
-        } catch (nativeErr: any) {
-          console.error("Native Android Gemini call failed, falling back to server...", nativeErr);
-          throw new Error("On-Device AI Engine Failure: " + (nativeErr?.message || nativeErr));
+      // 2. Chat/Process locally
+      const chatModel = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          responseMimeType: "application/json",
         }
-      } else {
-        // Fallback to standard HTTP node server
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
-        if (userApiKey) {
-          headers["X-Gemini-API-Key"] = userApiKey;
-        }
+      });
 
-        const res = await fetch("/api/brain-dump/chat", {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            message: text,
-            history: chatHistory,
-            tasks: tasks,
-            routineBlocks,
-            currentTime,
-          })
-        });
+      const systemPrompt = `You are "Gemini Planner Bot", a specialized conversational day planner similar to what Gemini for Google Workspace would be like.
+The user is having a continuous conversational "Brain Dump" session with you. They will tell you everything they need to do, changes they want, or schedule queries in a stream of consciousness.
+Your job is to talk back to them, converse naturally, ask for missing things (like duration, priority, preferred windows), and strategically place things in the calendar.
 
-        if (!res.ok) {
-          let errMsg = "Unable to retrieve response from Gemini. Check key and connection!";
-          try {
-            const errData = await res.json();
-            if (errData && errData.message) {
-              errMsg = errData.message;
-            }
-          } catch (e) {}
-          throw new Error(errMsg);
-        }
+Current time of scheduling: ${currentTime || "08:00"}.
 
-        responseData = await res.json();
-      }
+Here are their routine blocks mapping their daily constraints:
+${JSON.stringify(routineBlocks, null, 2)}
+
+You are stateful. Under "updatedTasks" in your JSON output, return the entire revised list of Tasks:
+- If they ask to add a task, do so! Fabricate a unique id (like 'task-[timestamp]'), set reasonable default properties.
+- If they request to change, reschedule, remove, adjust, or check off tasks, make the change and return the revised tasks!
+- Ensure tasks DO NOT overlap with other tasks 'assignedTime' and do not overlap locked routine blocks.
+
+Your response MUST be valid JSON.
+In your response "reply" field: speak directly to the user (1-3 sentences) in a warm, competent tone.`;
+
+      const chatResult = await chatModel.generateContent([
+        systemPrompt,
+        `Current Time: ${currentTime}, Tasks: ${JSON.stringify(tasks)}, Message: ${text}`
+      ]);
+
+      const responseData = JSON.parse(chatResult.response.text());
 
       setPttReply(responseData.reply);
-      setChatHistory(prev => [...prev, { role: 'model' as const, text: responseData.reply }]);
+      setChatHistory(prev => [...prev, { role: 'user', text }, { role: 'model', text: responseData.reply }]);
 
       if (responseData.updatedTasks && onUpdateAllTasks) {
         onUpdateAllTasks(responseData.updatedTasks);
