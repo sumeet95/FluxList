@@ -65,7 +65,7 @@ export default function App() {
   const [hasApiKey, setHasApiKey] = useState(true);
   const [calibrationRequired, setCalibrationRequired] = useState(true);
   const [loadingStep, setLoadingStep] = useState("");
-  const [userApiKey, setUserApiKey] = useState<string>("YOUR_GEMINI_API_KEY_HERE");
+  const [userApiKey, setUserApiKey] = useState<string>("AIzaSyD0XnjBImbd6ESU--_lzDmB5gk-18nrU_0");
   const [showKeySettings, setShowKeySettings] = useState(false);
 
   // Sync custom key to storage (optional now since hardcoded, but kept for overrides)
