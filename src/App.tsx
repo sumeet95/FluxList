@@ -339,7 +339,7 @@ export default function App() {
   };
 
   return (
-    <PhoneFrame title="FluxList AI">
+    <div className="flex-1 flex flex-col min-h-screen bg-white">
       {showKeySettings && (
         <div className="bg-slate-50 border-b border-slate-200 p-4 space-y-3.5 shrink-0 animate-fadeIn text-slate-800 z-10">
           <div className="flex items-center justify-between">
@@ -511,6 +511,6 @@ export default function App() {
           <span className="text-[10px] tracking-wide font-bold uppercase text-center">Day at a Glance</span>
         </button>
       </div>
-    </PhoneFrame>
+    </div>
   );
 }
